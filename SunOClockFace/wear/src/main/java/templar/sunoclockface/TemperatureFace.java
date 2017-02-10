@@ -21,6 +21,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.Resources;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -50,7 +52,6 @@ public class TemperatureFace extends CanvasWatchFaceService {
             Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD);
     private static final Typeface NORMAL_TYPEFACE =
             Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL);
-
     /**
      * Update rate in milliseconds for interactive mode. We update once a second since seconds are
      * displayed in interactive mode.
@@ -90,9 +91,15 @@ public class TemperatureFace extends CanvasWatchFaceService {
     private class Engine extends CanvasWatchFaceService.Engine {
         final Handler mUpdateTimeHandler = new EngineHandler(this);
         boolean mRegisteredTimeZoneReceiver = false;
-        Paint mBackgroundPaint;
+
         Paint mTextPaint;
-        boolean mAmbient;
+        Paint mBackgroundPaint;
+        private Bitmap mBackgroundBitmap;
+
+        private boolean mAmbient;
+        private boolean mLowBitAmbient;
+        private boolean mBurnInProtection;
+
         Calendar mCalendar;
         final BroadcastReceiver mTimeZoneReceiver = new BroadcastReceiver() {
             @Override
@@ -108,7 +115,6 @@ public class TemperatureFace extends CanvasWatchFaceService {
          * Whether the display supports fewer bits for each color in ambient mode. When true, we
          * disable anti-aliasing in ambient mode.
          */
-        boolean mLowBitAmbient;
 
         @Override
         public void onCreate(SurfaceHolder holder) {
@@ -125,6 +131,7 @@ public class TemperatureFace extends CanvasWatchFaceService {
 
             mBackgroundPaint = new Paint();
             mBackgroundPaint.setColor(resources.getColor(R.color.background));
+            mBackgroundBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.rain);
 
             mTextPaint = new Paint();
             mTextPaint = createTextPaint(resources.getColor(R.color.digital_text));
@@ -138,12 +145,83 @@ public class TemperatureFace extends CanvasWatchFaceService {
             super.onDestroy();
         }
 
+        @Override
+        public void onPropertiesChanged(Bundle properties) {
+            super.onPropertiesChanged(properties);
+            mLowBitAmbient = properties.getBoolean(PROPERTY_LOW_BIT_AMBIENT, false);
+            mBurnInProtection = properties.getBoolean(PROPERTY_BURN_IN_PROTECTION, false);
+        }
+
+        @Override
+        public void onTimeTick() {
+            super.onTimeTick();
+            invalidate();
+        }
+
+        @Override
+        public void onAmbientModeChanged(boolean inAmbientMode) {
+            super.onAmbientModeChanged(inAmbientMode);
+            if (mAmbient != inAmbientMode) {
+                mAmbient = inAmbientMode;
+                if (mLowBitAmbient) {
+                    mTextPaint.setAntiAlias(!inAmbientMode);
+                }
+                invalidate();
+            }
+
+            updateWatchStyle();
+
+            // Whether the timer should be running depends on whether we're visible (as well as
+            // whether we're in ambient mode), so we may need to start or stop the timer.
+            updateTimer();
+        }
+
+        private void updateWatchStyle(){
+            if(mAmbient){
+
+            }else{
+
+            }
+        }
+
+        @Override
+        public void onSurfaceChanged(SurfaceHolder holder, int format, int width, int height){
+            super.onSurfaceChanged(holder, format, width, height);
+
+            float scale = ((float) width) / (float) mBackgroundBitmap.getWidth();
+
+            mBackgroundBitmap = Bitmap.createScaledBitmap(mBackgroundBitmap,
+                    (int) (mBackgroundBitmap.getWidth() * scale),
+                    (int) (mBackgroundBitmap.getHeight() * scale), true);
+        }
+
         private Paint createTextPaint(int textColor) {
             Paint paint = new Paint();
             paint.setColor(textColor);
             paint.setTypeface(NORMAL_TYPEFACE);
             paint.setAntiAlias(true);
             return paint;
+        }
+
+        @Override
+        public void onDraw(Canvas canvas, Rect bounds) {
+            // Draw the background.
+            if (isInAmbientMode()) {
+                canvas.drawColor(Color.BLACK);
+            } else {
+                canvas.drawBitmap(mBackgroundBitmap, 0, 0, mBackgroundPaint);
+            }
+
+            // Draw H:MM in ambient mode or H:MM:SS in interactive mode.
+            long now = System.currentTimeMillis();
+            mCalendar.setTimeInMillis(now);
+
+            String text = mAmbient
+                    ? String.format("%d:%02d", mCalendar.get(Calendar.HOUR),
+                    mCalendar.get(Calendar.MINUTE))
+                    : String.format("%d:%02d:%02d", mCalendar.get(Calendar.HOUR),
+                    mCalendar.get(Calendar.MINUTE), mCalendar.get(Calendar.SECOND));
+            canvas.drawText(text, mXOffset, mYOffset, mTextPaint);
         }
 
         @Override
@@ -197,34 +275,6 @@ public class TemperatureFace extends CanvasWatchFaceService {
             mTextPaint.setTextSize(textSize);
         }
 
-        @Override
-        public void onPropertiesChanged(Bundle properties) {
-            super.onPropertiesChanged(properties);
-            mLowBitAmbient = properties.getBoolean(PROPERTY_LOW_BIT_AMBIENT, false);
-        }
-
-        @Override
-        public void onTimeTick() {
-            super.onTimeTick();
-            invalidate();
-        }
-
-        @Override
-        public void onAmbientModeChanged(boolean inAmbientMode) {
-            super.onAmbientModeChanged(inAmbientMode);
-            if (mAmbient != inAmbientMode) {
-                mAmbient = inAmbientMode;
-                if (mLowBitAmbient) {
-                    mTextPaint.setAntiAlias(!inAmbientMode);
-                }
-                invalidate();
-            }
-
-            // Whether the timer should be running depends on whether we're visible (as well as
-            // whether we're in ambient mode), so we may need to start or stop the timer.
-            updateTimer();
-        }
-
         /**
          * Captures tap event (and tap type) and toggles the background color if the user finishes
          * a tap.
@@ -246,27 +296,6 @@ public class TemperatureFace extends CanvasWatchFaceService {
                     break;
             }
             invalidate();
-        }
-
-        @Override
-        public void onDraw(Canvas canvas, Rect bounds) {
-            // Draw the background.
-            if (isInAmbientMode()) {
-                canvas.drawColor(Color.BLACK);
-            } else {
-                canvas.drawRect(0, 0, bounds.width(), bounds.height(), mBackgroundPaint);
-            }
-
-            // Draw H:MM in ambient mode or H:MM:SS in interactive mode.
-            long now = System.currentTimeMillis();
-            mCalendar.setTimeInMillis(now);
-
-            String text = mAmbient
-                    ? String.format("%d:%02d", mCalendar.get(Calendar.HOUR),
-                    mCalendar.get(Calendar.MINUTE))
-                    : String.format("%d:%02d:%02d", mCalendar.get(Calendar.HOUR),
-                    mCalendar.get(Calendar.MINUTE), mCalendar.get(Calendar.SECOND));
-            canvas.drawText(text, mXOffset, mYOffset, mTextPaint);
         }
 
         /**
