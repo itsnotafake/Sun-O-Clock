@@ -18,6 +18,8 @@ package com.example.android.sunshine.sync;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.Intent;
+import android.os.Bundle;
 import android.text.format.DateUtils;
 
 import com.example.android.sunshine.data.SunshinePreferences;
@@ -103,6 +105,13 @@ public class SunshineSyncTask {
                 if (notificationsEnabled && oneDayPassedSinceLastNotification) {
                     NotificationUtils.notifyUserOfNewWeather(context);
                 }
+
+                //This code is to broadcast the current weather
+                Intent broadcastWeather = new Intent("com.example.android.sunshine.BROADCAST_WEATHER");
+                Bundle bundle = new Bundle();
+                bundle.putParcelable("WEATHER", weatherValues[0]);
+                broadcastWeather.putExtra("WEATHER", bundle);
+                context.sendBroadcast(broadcastWeather);
 
             /* If the code reaches this point, we have successfully performed our sync */
 

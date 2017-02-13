@@ -18,10 +18,13 @@ package templar.sunoclockface;
 
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
+import android.content.ContentProviderClient;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.Resources;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -33,8 +36,10 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.os.RemoteException;
 import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
+import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.WindowInsets;
 import android.widget.Toast;
@@ -86,6 +91,20 @@ public class TemperatureFace extends CanvasWatchFaceService {
                         engine.handleUpdateTimeMessage();
                         break;
                 }
+            }
+        }
+    }
+
+    public class WeatherReceiver extends BroadcastReceiver{
+
+        @Override
+        public void onReceive(Context context, Intent intent){
+            Bundle bundle = intent.getBundleExtra("WEATHER");
+            ContentValues contentValues = (ContentValues) bundle.get("WEATHER");
+            if(contentValues != null){
+                Log.e("NICE", "Content values acquired");
+            }else{
+                Log.e("BAD", "Content values null");
             }
         }
     }
@@ -146,10 +165,7 @@ public class TemperatureFace extends CanvasWatchFaceService {
                     resources.getString(R.string.sunshine_ContentAuthority),
                     resources.getString(R.string.sunshine_SyncIntentService))
             );
-            ComponentName syncWeather = startService(updateWeather);
-
-            //Pulls weather data from Sunshine Content Provider
-            Uri currentWeatherUri = Uri.parse
+            startService(updateWeather);
         }
 
         @Override
