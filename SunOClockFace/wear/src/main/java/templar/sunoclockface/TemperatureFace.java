@@ -17,6 +17,7 @@
 package templar.sunoclockface;
 
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -28,6 +29,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.Typeface;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -137,6 +139,17 @@ public class TemperatureFace extends CanvasWatchFaceService {
             mTextPaint = createTextPaint(resources.getColor(R.color.digital_text));
 
             mCalendar = Calendar.getInstance();
+
+            //Makes sure that Sunshine weather data is synced
+            Intent updateWeather = new Intent();
+            updateWeather.setComponent(new ComponentName(
+                    resources.getString(R.string.sunshine_ContentAuthority),
+                    resources.getString(R.string.sunshine_SyncIntentService))
+            );
+            ComponentName syncWeather = startService(updateWeather);
+
+            //Pulls weather data from Sunshine Content Provider
+            Uri currentWeatherUri = Uri.parse
         }
 
         @Override

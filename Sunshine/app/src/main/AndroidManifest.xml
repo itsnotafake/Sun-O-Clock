@@ -58,7 +58,8 @@
         <provider
             android:name=".data.WeatherProvider"
             android:authorities="@string/content_authority"
-            android:exported="false"/>
+            android:readPermission="android.permission.permRead"
+            android:exported="true"/>
 
         <!--This is required for immediate syncs -->
         <service
