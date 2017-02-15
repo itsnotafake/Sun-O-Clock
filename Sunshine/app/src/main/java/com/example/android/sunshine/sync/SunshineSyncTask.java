@@ -144,32 +144,11 @@ public class SunshineSyncTask{
     }
 
     public static void sendWeatherCV(ContentValues weatherValue){
-        PutDataMapRequest putDataMapRequest = PutDataMapRequest.create("weatherCV");
+        PutDataMapRequest putDataMapRequest = PutDataMapRequest.create("/weatherCV");
 
         putDataMapRequest.getDataMap().putInt(
                 WeatherContract.WeatherEntry.COLUMN_WEATHER_ID,
                 (int) weatherValue.get(WeatherContract.WeatherEntry.COLUMN_WEATHER_ID)
-        );
-        putDataMapRequest.getDataMap().putLong(
-                WeatherContract.WeatherEntry.COLUMN_DATE,
-                (long)  weatherValue.get(WeatherContract.WeatherEntry.COLUMN_DATE)
-        );
-        putDataMapRequest.getDataMap().putInt(
-                WeatherContract.WeatherEntry.COLUMN_HUMIDITY,
-                (int)  weatherValue.get(WeatherContract.WeatherEntry.COLUMN_HUMIDITY)
-        );
-        putDataMapRequest.getDataMap().putDouble(
-                WeatherContract.WeatherEntry.COLUMN_PRESSURE,
-                (long)  weatherValue.get(WeatherContract.WeatherEntry.COLUMN_PRESSURE)
-        );
-        putDataMapRequest.getDataMap().putDouble(
-                WeatherContract.WeatherEntry.COLUMN_WIND_SPEED,
-                (long)  weatherValue.get(WeatherContract.WeatherEntry.COLUMN_WIND_SPEED)
-        );
-        putDataMapRequest.getDataMap().putDouble(
-                WeatherContract.WeatherEntry.COLUMN_DEGREES,
-                (long)  weatherValue.get(WeatherContract.WeatherEntry.COLUMN_DEGREES)
-        );
         putDataMapRequest.getDataMap().putDouble(
                 WeatherContract.WeatherEntry.COLUMN_MAX_TEMP,
                 (long)  weatherValue.get(WeatherContract.WeatherEntry.COLUMN_MAX_TEMP)
