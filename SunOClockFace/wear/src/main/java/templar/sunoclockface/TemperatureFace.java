@@ -56,7 +56,7 @@ import java.util.concurrent.TimeUnit;
  * low-bit ambient mode, the text is drawn without anti-aliasing in ambient mode.
  */
 public class TemperatureFace extends CanvasWatchFaceService {
-    private final static String TAG = "SunOClockWFService";
+    private final static String TAG = "TempFace";
     private static final Typeface BOLD_TYPEFACE =
             Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD);
     private static final Typeface NORMAL_TYPEFACE =
@@ -98,20 +98,6 @@ public class TemperatureFace extends CanvasWatchFaceService {
                         engine.handleUpdateTimeMessage();
                         break;
                 }
-            }
-        }
-    }
-
-    public class WeatherReceiver extends BroadcastReceiver{
-
-        @Override
-        public void onReceive(Context context, Intent intent){
-            Bundle bundle = intent.getBundleExtra(broadcast_bundle);
-            ContentValues contentValues = (ContentValues) bundle.get(broadcast_cv);
-            if(contentValues != null){
-                Log.e("NICE", "Content values acquired");
-            }else{
-                Log.e("BAD", "Content values null");
             }
         }
     }
@@ -179,6 +165,10 @@ public class TemperatureFace extends CanvasWatchFaceService {
                     resources.getString(R.string.sunshine_SyncIntentService))
             );
             startService(updateWeather);
+
+            Log.e(TAG, "Weather Id: " + WeatherListenerService.mWeatherId);
+            Log.e(TAG, "Max Temp: " + WeatherListenerService.mMax);
+            Log.e(TAG, "Min Temp: " + WeatherListenerService.mMin);
         }
 
         @Override

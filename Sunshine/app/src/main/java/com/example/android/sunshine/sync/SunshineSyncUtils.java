@@ -20,6 +20,7 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.support.annotation.NonNull;
+import android.util.Log;
 
 import com.example.android.sunshine.data.WeatherContract;
 import com.firebase.jobdispatcher.Constraint;
@@ -187,6 +188,8 @@ public class SunshineSyncUtils {
      */
     public static void startImmediateSync(@NonNull final Context context) {
         Intent intentToSyncImmediately = new Intent(context, SunshineSyncIntentService.class);
+        Log.e("TAG", "before context.startService(intentToSyncImmediately)");
         context.startService(intentToSyncImmediately);
+        Log.e("TAG", "after context.startService(intentToSyncImmediately)");
     }
 }

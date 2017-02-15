@@ -15,6 +15,9 @@
  */
 package com.example.android.sunshine;
 
+import android.content.ContentResolver;
+import android.content.ContentValues;
+import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
@@ -39,6 +42,11 @@ import com.example.android.sunshine.data.WeatherContract;
 import com.example.android.sunshine.sync.SunshineSyncUtils;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.wearable.DataApi;
+import com.google.android.gms.wearable.PutDataMapRequest;
+import com.google.android.gms.wearable.PutDataRequest;
+import com.google.android.gms.wearable.Wearable;
 
 public class MainActivity extends AppCompatActivity implements
         LoaderManager.LoaderCallbacks<Cursor>,
@@ -47,6 +55,8 @@ public class MainActivity extends AppCompatActivity implements
         GoogleApiClient.OnConnectionFailedListener{
 
     private final String TAG = MainActivity.class.getSimpleName();
+    private static Context mContext;
+    public static GoogleApiClient mGoogleApiClient;
 
     /*
      * The columns of data that we are interested in displaying within our MainActivity's list of
@@ -89,6 +99,7 @@ public class MainActivity extends AppCompatActivity implements
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        mContext = this;
         setContentView(R.layout.activity_forecast);
         getSupportActionBar().setElevation(0f);
 
@@ -157,9 +168,17 @@ public class MainActivity extends AppCompatActivity implements
          * the last created loader is re-used.
          */
         getSupportLoaderManager().initLoader(ID_FORECAST_LOADER, null, this);
-
         SunshineSyncUtils.initialize(this);
 
+        Log.e("TAG", "before Thread sendWeatherToWearable is run");
+        Thread sendWeatherToWearable = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                getWeatherCV();
+            }
+        });
+        sendWeatherToWearable.run();
+        Log.e("TAG", "after Thread sendWeatherToWearable is run");
     }
 
     /**
@@ -352,16 +371,94 @@ public class MainActivity extends AppCompatActivity implements
 
     @Override
     public void onConnected(@Nullable Bundle bundle) {
-
+        Log.e("TAG", "Connected!");
     }
 
     @Override
     public void onConnectionSuspended(int i) {
-
+        Log.e("TAG", "Connection Suspended!");
     }
 
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+        Log.e("TAG", "Connection failed!");
+    }
+
+    private void getWeatherCV() {
+        /* URI for all rows of weather data in our weather table */
+        Uri forecastQueryUri = WeatherContract.WeatherEntry.CONTENT_URI;
+                /* Sort order: Ascending by date */
+        String sortOrder = WeatherContract.WeatherEntry.COLUMN_DATE + " ASC";
+        ContentResolver contentResolver = this.getContentResolver();
+        Cursor cursor = contentResolver.query(
+                forecastQueryUri,
+                MAIN_FORECAST_PROJECTION,
+                null,
+                null,
+                sortOrder);
+
+        ContentValues cv = new ContentValues();
+        if(cursor.moveToFirst()){
+            cv.put(
+                    WeatherContract.WeatherEntry.COLUMN_WEATHER_ID,
+                    cursor.getInt(MainActivity.INDEX_WEATHER_CONDITION_ID)
+            );
+            cv.put(
+                    WeatherContract.WeatherEntry.COLUMN_MAX_TEMP,
+                    cursor.getDouble(MainActivity.INDEX_WEATHER_MAX_TEMP)
+            );
+            cv.put(
+                    WeatherContract.WeatherEntry.COLUMN_MIN_TEMP,
+                    cursor.getDouble(MainActivity.INDEX_WEATHER_MIN_TEMP)
+            );
+            sendWeatherToWearable(cv);
+        }else{
+            Log.e("TAG", "Cursor is null");
+        }
+    }
+
+    private void sendWeatherToWearable(ContentValues cv){
+        Log.e("TAG", "before Google Api Client built");
+        mGoogleApiClient = new GoogleApiClient.Builder(this)
+                .addApi(Wearable.API)
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(this)
+                .build();
+        Log.e("TAG", "after Google Api Client connect");
+        mGoogleApiClient.connect();
+        Log.e("TAG", "after Google Api Client connect");
+
+        sendWeatherCV(cv);
+        Log.e("TAG", "WCV SENT!!!");
+    }
+
+    private void sendWeatherCV(ContentValues weatherValue){
+        PutDataMapRequest putDataMapRequest = PutDataMapRequest.create("/weatherCV");
+
+        putDataMapRequest.getDataMap().putInt(
+                WeatherContract.WeatherEntry.COLUMN_WEATHER_ID,
+                (int) weatherValue.get(WeatherContract.WeatherEntry.COLUMN_WEATHER_ID));
+        putDataMapRequest.getDataMap().putDouble(
+                WeatherContract.WeatherEntry.COLUMN_MAX_TEMP,
+                (double)  weatherValue.get(WeatherContract.WeatherEntry.COLUMN_MAX_TEMP)
+        );
+        putDataMapRequest.getDataMap().putDouble(
+                WeatherContract.WeatherEntry.COLUMN_MIN_TEMP,
+                (double)  weatherValue.get(WeatherContract.WeatherEntry.COLUMN_MIN_TEMP)
+        );
+
+        PutDataRequest request = putDataMapRequest.asPutDataRequest();
+        Wearable.DataApi.putDataItem(mGoogleApiClient, request)
+                .setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
+                    @Override
+                    public void onResult(DataApi.DataItemResult dataItemResult){
+                        if(!dataItemResult.getStatus().isSuccess()){
+                            Log.e("TAG", "Failed to send weather Content Values");
+                        }else{
+                            Log.e("TAG", "Successfully sent weather Content values");
+                        }
+                    }
+                });
 
     }
 }

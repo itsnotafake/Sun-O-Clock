@@ -43,12 +43,7 @@ import com.google.android.gms.wearable.Wearable;
 import java.net.URL;
 
 public class SunshineSyncTask{
-
-    private static final String broadcast_bundle = "WEATHER_BUNDLE";
-    private static final String broadcast_cv = "WEATHER_CV";
     private static final String TAG = SunshineSyncTask.class.getSimpleName();
-
-    public static GoogleApiClient mGoogleApiClient;
 
     /**
      * Performs the network request for updated weather, parses the JSON from that request, and
@@ -123,16 +118,6 @@ public class SunshineSyncTask{
                 if (notificationsEnabled && oneDayPassedSinceLastNotification) {
                     NotificationUtils.notifyUserOfNewWeather(context);
                 }
-
-                mGoogleApiClient = new GoogleApiClient.Builder(context)
-                        .addApi(Wearable.API)
-                        .addConnectionCallbacks((MainActivity) context)
-                        .addOnConnectionFailedListener((MainActivity) context)
-                        .build();
-                mGoogleApiClient.connect();
-
-                sendWeatherCV(weatherValues[0]);
-
             /* If the code reaches this point, we have successfully performed our sync */
 
             }
@@ -141,35 +126,5 @@ public class SunshineSyncTask{
             /* Server probably invalid */
             e.printStackTrace();
         }
-    }
-
-    public static void sendWeatherCV(ContentValues weatherValue){
-        PutDataMapRequest putDataMapRequest = PutDataMapRequest.create("/weatherCV");
-
-        putDataMapRequest.getDataMap().putInt(
-                WeatherContract.WeatherEntry.COLUMN_WEATHER_ID,
-                (int) weatherValue.get(WeatherContract.WeatherEntry.COLUMN_WEATHER_ID));
-        putDataMapRequest.getDataMap().putDouble(
-                WeatherContract.WeatherEntry.COLUMN_MAX_TEMP,
-                (long)  weatherValue.get(WeatherContract.WeatherEntry.COLUMN_MAX_TEMP)
-        );
-        putDataMapRequest.getDataMap().putDouble(
-                WeatherContract.WeatherEntry.COLUMN_MIN_TEMP,
-                (long)  weatherValue.get(WeatherContract.WeatherEntry.COLUMN_MIN_TEMP)
-        );
-
-        PutDataRequest request = putDataMapRequest.asPutDataRequest();
-        Wearable.DataApi.putDataItem(mGoogleApiClient, request)
-                .setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
-                    @Override
-                    public void onResult(DataApi.DataItemResult dataItemResult){
-                        if(!dataItemResult.getStatus().isSuccess()){
-                            Log.e(TAG, "Failed to send weather Content Values");
-                        }else{
-                            Log.e(TAG, "Successfully sent weather Content values");
-                        }
-                    }
-                });
-
     }
 }
