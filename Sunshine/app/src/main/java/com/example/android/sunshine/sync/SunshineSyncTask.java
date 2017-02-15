@@ -148,7 +148,7 @@ public class SunshineSyncTask{
 
         putDataMapRequest.getDataMap().putInt(
                 WeatherContract.WeatherEntry.COLUMN_WEATHER_ID,
-                (int) weatherValue.get(WeatherContract.WeatherEntry.COLUMN_WEATHER_ID)
+                (int) weatherValue.get(WeatherContract.WeatherEntry.COLUMN_WEATHER_ID));
         putDataMapRequest.getDataMap().putDouble(
                 WeatherContract.WeatherEntry.COLUMN_MAX_TEMP,
                 (long)  weatherValue.get(WeatherContract.WeatherEntry.COLUMN_MAX_TEMP)
