@@ -218,6 +218,10 @@
     <string name="condition_unknown">Unknown (<xliff:g id="conditionId">%1$d</xliff:g>)</string>
 
 
+    <!-- Strings related to SunOClock Watch Face -->
+    <string name="sendWeatherBroadcast">com.example.android.sunshine.BROADCAST_WEATHER</string>
+
+
 
     <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       - Used for Accessibility purposes (Accessibility == a11y)                            -

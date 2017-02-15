@@ -37,9 +37,11 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.os.RemoteException;
+import android.support.wearable.complications.ComplicationData;
 import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
 import android.util.Log;
+import android.util.SparseArray;
 import android.view.SurfaceHolder;
 import android.view.WindowInsets;
 import android.widget.Toast;
@@ -54,11 +56,16 @@ import java.util.concurrent.TimeUnit;
  * low-bit ambient mode, the text is drawn without anti-aliasing in ambient mode.
  */
 public class TemperatureFace extends CanvasWatchFaceService {
-    private final static String TAG = "SunOClockWatchFaceService";
+    private final static String TAG = "SunOClockWFService";
     private static final Typeface BOLD_TYPEFACE =
             Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD);
     private static final Typeface NORMAL_TYPEFACE =
             Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL);
+
+    //Strings for communicating with Sunshine app
+    private static final String broadcast_bundle = "WEATHER_BUNDLE";
+    private static final String broadcast_cv = "WEATHER_CV";
+
     /**
      * Update rate in milliseconds for interactive mode. We update once a second since seconds are
      * displayed in interactive mode.
@@ -99,8 +106,8 @@ public class TemperatureFace extends CanvasWatchFaceService {
 
         @Override
         public void onReceive(Context context, Intent intent){
-            Bundle bundle = intent.getBundleExtra("WEATHER");
-            ContentValues contentValues = (ContentValues) bundle.get("WEATHER");
+            Bundle bundle = intent.getBundleExtra(broadcast_bundle);
+            ContentValues contentValues = (ContentValues) bundle.get(broadcast_cv);
             if(contentValues != null){
                 Log.e("NICE", "Content values acquired");
             }else{
@@ -129,6 +136,12 @@ public class TemperatureFace extends CanvasWatchFaceService {
                 invalidate();
             }
         };
+
+        private int mWidth;
+        private int mHeight;
+        private float mCenterX;
+        private float mCenterY;
+        private float mScale = 1;
         float mXOffset;
         float mYOffset;
 
@@ -192,7 +205,7 @@ public class TemperatureFace extends CanvasWatchFaceService {
             super.onAmbientModeChanged(inAmbientMode);
             if (mAmbient != inAmbientMode) {
                 mAmbient = inAmbientMode;
-                if (mLowBitAmbient) {
+                if (mLowBitAmbient || mBurnInProtection) {
                     mTextPaint.setAntiAlias(!inAmbientMode);
                 }
                 invalidate();
@@ -216,12 +229,21 @@ public class TemperatureFace extends CanvasWatchFaceService {
         @Override
         public void onSurfaceChanged(SurfaceHolder holder, int format, int width, int height){
             super.onSurfaceChanged(holder, format, width, height);
+            mWidth = width;
+            mHeight = height;
+            mCenterX = mWidth / 2f;
+            mCenterY = mHeight / 2f;
 
-            float scale = ((float) width) / (float) mBackgroundBitmap.getWidth();
+            mScale = ((float) width) / (float) mBackgroundBitmap.getWidth();
 
             mBackgroundBitmap = Bitmap.createScaledBitmap(mBackgroundBitmap,
-                    (int) (mBackgroundBitmap.getWidth() * scale),
-                    (int) (mBackgroundBitmap.getHeight() * scale), true);
+                    (int) (mBackgroundBitmap.getWidth() * mScale),
+                    (int) (mBackgroundBitmap.getHeight() * mScale), true);
+
+            if (!mBurnInProtection || !mLowBitAmbient) {
+                //TODO
+                //initGrayBackgroundBitmap();
+            }
         }
 
         private Paint createTextPaint(int textColor) {

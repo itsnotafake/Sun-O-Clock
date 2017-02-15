@@ -20,17 +20,35 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.text.format.DateUtils;
+import android.util.Log;
 
+import com.example.android.sunshine.MainActivity;
+import com.example.android.sunshine.R;
 import com.example.android.sunshine.data.SunshinePreferences;
 import com.example.android.sunshine.data.WeatherContract;
 import com.example.android.sunshine.utilities.NetworkUtils;
 import com.example.android.sunshine.utilities.NotificationUtils;
 import com.example.android.sunshine.utilities.OpenWeatherJsonUtils;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.wearable.DataApi;
+import com.google.android.gms.wearable.PutDataMapRequest;
+import com.google.android.gms.wearable.PutDataRequest;
+import com.google.android.gms.wearable.Wearable;
 
 import java.net.URL;
 
-public class SunshineSyncTask {
+public class SunshineSyncTask{
+
+    private static final String broadcast_bundle = "WEATHER_BUNDLE";
+    private static final String broadcast_cv = "WEATHER_CV";
+    private static final String TAG = SunshineSyncTask.class.getSimpleName();
+
+    public static GoogleApiClient mGoogleApiClient;
 
     /**
      * Performs the network request for updated weather, parses the JSON from that request, and
@@ -106,12 +124,14 @@ public class SunshineSyncTask {
                     NotificationUtils.notifyUserOfNewWeather(context);
                 }
 
-                //This code is to broadcast the current weather
-                Intent broadcastWeather = new Intent("com.example.android.sunshine.BROADCAST_WEATHER");
-                Bundle bundle = new Bundle();
-                bundle.putParcelable("WEATHER", weatherValues[0]);
-                broadcastWeather.putExtra("WEATHER", bundle);
-                context.sendBroadcast(broadcastWeather);
+                mGoogleApiClient = new GoogleApiClient.Builder(context)
+                        .addApi(Wearable.API)
+                        .addConnectionCallbacks((MainActivity) context)
+                        .addOnConnectionFailedListener((MainActivity) context)
+                        .build();
+                mGoogleApiClient.connect();
+
+                sendWeatherCV(weatherValues[0]);
 
             /* If the code reaches this point, we have successfully performed our sync */
 
@@ -121,5 +141,56 @@ public class SunshineSyncTask {
             /* Server probably invalid */
             e.printStackTrace();
         }
+    }
+
+    public static void sendWeatherCV(ContentValues weatherValue){
+        PutDataMapRequest putDataMapRequest = PutDataMapRequest.create("weatherCV");
+
+        putDataMapRequest.getDataMap().putInt(
+                WeatherContract.WeatherEntry.COLUMN_WEATHER_ID,
+                (int) weatherValue.get(WeatherContract.WeatherEntry.COLUMN_WEATHER_ID)
+        );
+        putDataMapRequest.getDataMap().putLong(
+                WeatherContract.WeatherEntry.COLUMN_DATE,
+                (long)  weatherValue.get(WeatherContract.WeatherEntry.COLUMN_DATE)
+        );
+        putDataMapRequest.getDataMap().putInt(
+                WeatherContract.WeatherEntry.COLUMN_HUMIDITY,
+                (int)  weatherValue.get(WeatherContract.WeatherEntry.COLUMN_HUMIDITY)
+        );
+        putDataMapRequest.getDataMap().putDouble(
+                WeatherContract.WeatherEntry.COLUMN_PRESSURE,
+                (long)  weatherValue.get(WeatherContract.WeatherEntry.COLUMN_PRESSURE)
+        );
+        putDataMapRequest.getDataMap().putDouble(
+                WeatherContract.WeatherEntry.COLUMN_WIND_SPEED,
+                (long)  weatherValue.get(WeatherContract.WeatherEntry.COLUMN_WIND_SPEED)
+        );
+        putDataMapRequest.getDataMap().putDouble(
+                WeatherContract.WeatherEntry.COLUMN_DEGREES,
+                (long)  weatherValue.get(WeatherContract.WeatherEntry.COLUMN_DEGREES)
+        );
+        putDataMapRequest.getDataMap().putDouble(
+                WeatherContract.WeatherEntry.COLUMN_MAX_TEMP,
+                (long)  weatherValue.get(WeatherContract.WeatherEntry.COLUMN_MAX_TEMP)
+        );
+        putDataMapRequest.getDataMap().putDouble(
+                WeatherContract.WeatherEntry.COLUMN_MIN_TEMP,
+                (long)  weatherValue.get(WeatherContract.WeatherEntry.COLUMN_MIN_TEMP)
+        );
+
+        PutDataRequest request = putDataMapRequest.asPutDataRequest();
+        Wearable.DataApi.putDataItem(mGoogleApiClient, request)
+                .setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
+                    @Override
+                    public void onResult(DataApi.DataItemResult dataItemResult){
+                        if(!dataItemResult.getStatus().isSuccess()){
+                            Log.e(TAG, "Failed to send weather Content Values");
+                        }else{
+                            Log.e(TAG, "Successfully sent weather Content values");
+                        }
+                    }
+                });
+
     }
 }

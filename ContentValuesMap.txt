@@ -1,0 +1,11 @@
+ContentValues weatherValues:
+
+(key,value)
+0. "date", dateTimeMillis (long)
+1. "humidity", humidity (int)
+2. "pressure", pressure (double)
+3. "wind", windSpeed (double)
+4. "degrees", windDirection (double)
+5. "max", high (double)
+6. "min", low (double)
+7. "weather_id", weatherId (int)
