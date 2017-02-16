@@ -62,10 +62,6 @@ public class TemperatureFace extends CanvasWatchFaceService {
     private static final Typeface NORMAL_TYPEFACE =
             Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL);
 
-    //Strings for communicating with Sunshine app
-    private static final String broadcast_bundle = "WEATHER_BUNDLE";
-    private static final String broadcast_cv = "WEATHER_CV";
-
     /**
      * Update rate in milliseconds for interactive mode. We update once a second since seconds are
      * displayed in interactive mode.
@@ -158,17 +154,9 @@ public class TemperatureFace extends CanvasWatchFaceService {
 
             mCalendar = Calendar.getInstance();
 
-            //Makes sure that Sunshine weather data is synced
-            Intent updateWeather = new Intent();
-            updateWeather.setComponent(new ComponentName(
-                    resources.getString(R.string.sunshine_ContentAuthority),
-                    resources.getString(R.string.sunshine_SyncIntentService))
-            );
-            startService(updateWeather);
-
-            Log.e(TAG, "Weather Id: " + WeatherListenerService.mWeatherId);
-            Log.e(TAG, "Max Temp: " + WeatherListenerService.mMax);
-            Log.e(TAG, "Min Temp: " + WeatherListenerService.mMin);
+            //Hopefully starts the weather listener service
+            Intent startWeatherListenerService = new Intent(getApplicationContext(), WeatherListenerService.class);
+            startService(startWeatherListenerService);
         }
 
         @Override

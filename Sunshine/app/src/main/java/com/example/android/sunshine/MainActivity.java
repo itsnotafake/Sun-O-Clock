@@ -448,6 +448,7 @@ public class MainActivity extends AppCompatActivity implements
         );
 
         PutDataRequest request = putDataMapRequest.asPutDataRequest();
+        request.setUrgent();
         Wearable.DataApi.putDataItem(mGoogleApiClient, request)
                 .setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
                     @Override
