@@ -13,14 +13,13 @@ public class WeatherListenerService extends WearableListenerService {
     private static final String TAG = "WeatherListenerService";
     private static final String DATA_EVENT_PATH = "/weatherCV";
 
-    public static int mWeatherId = 0;
-    public static double mMax = 0;
-    public static double mMin = 0;
+    public static int mWeatherId;
+    public static double mMax;
+    public static double mMin;
 
     @Override
     public void onDataChanged(DataEventBuffer dataEvents){
         Log.e(TAG, "dataEvent occured");
-
 
         for(DataEvent dataEvent : dataEvents){
             if(dataEvent.getType() == DataEvent.TYPE_CHANGED){
@@ -31,11 +30,12 @@ public class WeatherListenerService extends WearableListenerService {
                     mMax = dataMap.getDouble("max");
                     mMin = dataMap.getDouble("min");
                     Log.e(TAG, "Weather data successfully received");
+
+                    Log.e(TAG, "New Weather ID: " + mWeatherId + "\n" +
+                            "New max temp: " + mMax + "\n" +
+                            "New min temp: " + mMin);
                 }
             }
         }
-        Log.e(TAG, "Weather Id: " + WeatherListenerService.mWeatherId);
-        Log.e(TAG, "Max Temp: " + WeatherListenerService.mMax);
-        Log.e(TAG, "Min Temp: " + WeatherListenerService.mMin);
     }
 }

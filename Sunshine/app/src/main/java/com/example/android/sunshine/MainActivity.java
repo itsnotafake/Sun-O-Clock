@@ -170,7 +170,7 @@ public class MainActivity extends AppCompatActivity implements
         getSupportLoaderManager().initLoader(ID_FORECAST_LOADER, null, this);
         SunshineSyncUtils.initialize(this);
 
-        Log.e("TAG", "before Thread sendWeatherToWearable is run");
+        Log.e(TAG, "before Thread sendWeatherToWearable is run");
         Thread sendWeatherToWearable = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -178,7 +178,7 @@ public class MainActivity extends AppCompatActivity implements
             }
         });
         sendWeatherToWearable.run();
-        Log.e("TAG", "after Thread sendWeatherToWearable is run");
+        Log.e(TAG, "after Thread sendWeatherToWearable is run");
     }
 
     /**
@@ -371,17 +371,17 @@ public class MainActivity extends AppCompatActivity implements
 
     @Override
     public void onConnected(@Nullable Bundle bundle) {
-        Log.e("TAG", "Connected!");
+        Log.e(TAG, "Connected!");
     }
 
     @Override
     public void onConnectionSuspended(int i) {
-        Log.e("TAG", "Connection Suspended!");
+        Log.e(TAG, "Connection Suspended!");
     }
 
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-        Log.e("TAG", "Connection failed!");
+        Log.e(TAG, "Connection failed!");
     }
 
     private void getWeatherCV() {
@@ -413,23 +413,23 @@ public class MainActivity extends AppCompatActivity implements
             );
             sendWeatherToWearable(cv);
         }else{
-            Log.e("TAG", "Cursor is null");
+            Log.e(TAG, "Cursor is null");
         }
     }
 
     private void sendWeatherToWearable(ContentValues cv){
-        Log.e("TAG", "before Google Api Client built");
+        Log.e(TAG, "before Google Api Client built");
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .addApi(Wearable.API)
                 .addConnectionCallbacks(this)
                 .addOnConnectionFailedListener(this)
                 .build();
-        Log.e("TAG", "after Google Api Client connect");
+        Log.e(TAG, "after Google Api Client connect");
         mGoogleApiClient.connect();
-        Log.e("TAG", "after Google Api Client connect");
+        Log.e(TAG, "after Google Api Client connect");
 
         sendWeatherCV(cv);
-        Log.e("TAG", "WCV SENT!!!");
+        Log.e(TAG, "WCV SENT!!!");
     }
 
     private void sendWeatherCV(ContentValues weatherValue){
@@ -437,7 +437,12 @@ public class MainActivity extends AppCompatActivity implements
 
         putDataMapRequest.getDataMap().putInt(
                 WeatherContract.WeatherEntry.COLUMN_WEATHER_ID,
-                (int) weatherValue.get(WeatherContract.WeatherEntry.COLUMN_WEATHER_ID));
+                (int) weatherValue.get(WeatherContract.WeatherEntry.COLUMN_WEATHER_ID)
+        );/*
+        putDataMapRequest.getDataMap().putInt(
+                WeatherContract.WeatherEntry.COLUMN_WEATHER_ID,
+                5
+        );*/
         putDataMapRequest.getDataMap().putDouble(
                 WeatherContract.WeatherEntry.COLUMN_MAX_TEMP,
                 (double)  weatherValue.get(WeatherContract.WeatherEntry.COLUMN_MAX_TEMP)
@@ -454,9 +459,9 @@ public class MainActivity extends AppCompatActivity implements
                     @Override
                     public void onResult(DataApi.DataItemResult dataItemResult){
                         if(!dataItemResult.getStatus().isSuccess()){
-                            Log.e("TAG", "Failed to send weather Content Values");
+                            Log.e(TAG, "Failed to send weather Content Values");
                         }else{
-                            Log.e("TAG", "Successfully sent weather Content values");
+                            Log.e(TAG, "Successfully sent weather Content values");
                         }
                     }
                 });

@@ -140,7 +140,6 @@ public class SunshineWatchFace extends CanvasWatchFaceService{
         @Override
         public void onCreate(SurfaceHolder holder) {
             super.onCreate(holder);
-            Log.e("TAG", "WTF IS GOING ON");
 
             setWatchFaceStyle(new WatchFaceStyle.Builder(SunshineWatchFace.this)
                     .setCardPeekMode(WatchFaceStyle.PEEK_MODE_VARIABLE)
@@ -153,12 +152,17 @@ public class SunshineWatchFace extends CanvasWatchFaceService{
 
             mBackgroundPaint = new Paint();
             mBackgroundPaint.setColor(resources.getColor(R.color.background));
-            mBackgroundBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.rain);
+            mBackgroundBitmap = BitmapFactory.decodeResource(getResources(), getBackgroundId());
 
             mTextPaint = new Paint();
             mTextPaint = createTextPaint(resources.getColor(R.color.digital_text));
 
             mCalendar = Calendar.getInstance();
+
+            //Print our currently held weather values and connect to the Data Layer
+            Log.e(TAG, "Current Weather ID: " + WeatherListenerService.mWeatherId + "\n" +
+                    "Current max temp: " + WeatherListenerService.mMax + "\n" +
+                    "Current min temp: " + WeatherListenerService.mMin);
             connectDataLayer();
         }
 
@@ -362,31 +366,55 @@ public class SunshineWatchFace extends CanvasWatchFaceService{
             }
         }
 
-        public void connectDataLayer(){
-            Log.e("TAG", "before Google Api Client built");
+        //Method used to determine which our background will be. Use
+        //WIDtoWStringMap.txt as map for this (looks at incoming weatherID)
+        int getBackgroundId(){
+            int x = WeatherListenerService.mWeatherId;
+            if(x == 800 || (951 <= x && x <= 957)){
+                return R.drawable.clear;
+            }else if(802<= x && x <= 804){
+                return R.drawable.cloudy;
+            }else if(701 <= x && x <= 761){
+                return R.drawable.fog;
+            }else if(x == 801){
+                return R.drawable.light_clouds;
+            }else if(300 <= x && x <= 321){
+                return R.drawable.light_rain;
+            }else if((500 <= x && x <= 504) ||
+                    (520 <= x && x <= 531)){
+                return R.drawable.rain;
+            }else if(x == 511 || (600 <= x && x <= 622)){
+                return R.drawable.snow;
+            }else if((200 <= x && x <= 232) ||
+                    (900 <= x && x <= 906) ||
+                    (x == 761) || (x == 771) || (x == 781)){
+                return R.drawable.storm;
+            }else{
+                return R.drawable.clear;
+            }
+        }
+
+        void connectDataLayer(){
             mGoogleApiClient = new GoogleApiClient.Builder(getApplicationContext())
                     .addApi(Wearable.API)
                     .addConnectionCallbacks(this)
                     .addOnConnectionFailedListener(this)
                     .build();
-            Log.e("TAG", "before Wearable Google Api Client connect");
             mGoogleApiClient.connect();
-            Log.e("TAG", "after Wearable Google Api Client connect");
         }
 
         @Override
         public void onConnected(@Nullable Bundle bundle) {
-            Log.e("TAG", "we are connected");
+            Log.e(TAG, "Current Weather ID: " + WeatherListenerService.mWeatherId);
         }
 
         @Override
         public void onConnectionSuspended(int i) {
-
+            Log.e(TAG, "Wearable DataLayer connection suspended");
         }
-
         @Override
         public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-
+            Log.e(TAG, "Wearable DataLayer connection failed");
         }
     }
 }
