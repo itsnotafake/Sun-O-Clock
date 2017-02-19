@@ -258,6 +258,15 @@ public class SunshineWatchFace extends CanvasWatchFaceService{
                     : String.format("%d:%02d:%02d", mCalendar.get(Calendar.HOUR),
                     mCalendar.get(Calendar.MINUTE), mCalendar.get(Calendar.SECOND));
             canvas.drawText(text, mXOffset, mYOffset, mTextPaint);
+
+            if(!mAmbient){
+                canvas.drawText(String.valueOf(WeatherListenerService.mMin)
+                        + " - " + String.valueOf(WeatherListenerService.mMax),
+                        mXOffset,
+                        mYOffset+50,
+                        mTextPaint
+                );
+            }
         }
 
         @Override
