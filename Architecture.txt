@@ -1,0 +1,11 @@
+Architecture:
+
+WEARABLE:
+-onCreate fires a message to the mobile side.
+-A message will be returned entailing the current weather data. Using this message's notification, we draw the background and temperature values on the watch face.
+-Implement OnDataChanged to update the watchface.
+
+MOBILE:
+-receives a message from wearable (on wearable's startup/create).
+-message starts a service that 1. Immediately sends the wearable current weather data 2. Enables Data Items, syncing the two's weather data
+

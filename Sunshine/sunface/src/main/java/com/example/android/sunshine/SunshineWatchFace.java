@@ -31,8 +31,6 @@ import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
 import android.util.Log;
@@ -40,9 +38,7 @@ import android.view.SurfaceHolder;
 import android.view.WindowInsets;
 import android.widget.Toast;
 
-import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.wearable.Wearable;
 
 import java.lang.ref.WeakReference;
 import java.util.Calendar;
@@ -60,8 +56,6 @@ public class SunshineWatchFace extends CanvasWatchFaceService{
             Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD);
     private static final Typeface NORMAL_TYPEFACE =
             Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL);
-
-    public GoogleApiClient mGoogleApiClient;
 
     /**
      * Update rate in milliseconds for interactive mode. We update once a second since seconds are
@@ -99,11 +93,8 @@ public class SunshineWatchFace extends CanvasWatchFaceService{
         }
     }
 
-    private class Engine extends CanvasWatchFaceService.Engine implements
-            GoogleApiClient.ConnectionCallbacks,
-            GoogleApiClient.OnConnectionFailedListener{
+    private class Engine extends CanvasWatchFaceService.Engine {
 
-        public GoogleApiClient mGoogleApiClient;
         final Handler mUpdateTimeHandler = new EngineHandler(this);
         boolean mRegisteredTimeZoneReceiver = false;
 
@@ -159,11 +150,17 @@ public class SunshineWatchFace extends CanvasWatchFaceService{
 
             mCalendar = Calendar.getInstance();
 
-            //Print our currently held weather values and connect to the Data Layer
-            Log.e(TAG, "Current Weather ID: " + WeatherListenerService.mWeatherId + "\n" +
-                    "Current max temp: " + WeatherListenerService.mMax + "\n" +
-                    "Current min temp: " + WeatherListenerService.mMin);
-            connectDataLayer();
+            //Start GoogleApiClient and begin weather data synchronization
+            Thread setupCommunicationLayer = new Thread(new Runnable(){
+                @Override
+                public void run(){
+                    //WearableCommunicationLayer wearableCommunicationLayer =
+                            new WearableCommunicationLayer(getApplicationContext());
+                    //wearableCommunicationLayer.setupWeatherSyncRequest();
+                    //wearableCommunicationLayer.requestSyncWeatherRequest();
+                }
+            });
+            setupCommunicationLayer.run();
         }
 
         @Override
@@ -203,16 +200,16 @@ public class SunshineWatchFace extends CanvasWatchFaceService{
             updateTimer();
         }
 
-        private void updateWatchStyle(){
-            if(mAmbient){
+        private void updateWatchStyle() {
+            if (mAmbient) {
 
-            }else{
+            } else {
 
             }
         }
 
         @Override
-        public void onSurfaceChanged(SurfaceHolder holder, int format, int width, int height){
+        public void onSurfaceChanged(SurfaceHolder holder, int format, int width, int height) {
             super.onSurfaceChanged(holder, format, width, height);
             mWidth = width;
             mHeight = height;
@@ -259,11 +256,11 @@ public class SunshineWatchFace extends CanvasWatchFaceService{
                     mCalendar.get(Calendar.MINUTE), mCalendar.get(Calendar.SECOND));
             canvas.drawText(text, mXOffset, mYOffset, mTextPaint);
 
-            if(!mAmbient){
-                canvas.drawText(String.valueOf(WeatherListenerService.mMin)
-                        + " - " + String.valueOf(WeatherListenerService.mMax),
+            if (!mAmbient) {
+                canvas.drawText(String.valueOf(WearableCommunicationLayer.mMin)
+                                + " - " + String.valueOf(WearableCommunicationLayer.mMax),
                         mXOffset,
-                        mYOffset+50,
+                        mYOffset + 50,
                         mTextPaint
                 );
             }
@@ -377,53 +374,30 @@ public class SunshineWatchFace extends CanvasWatchFaceService{
 
         //Method used to determine which our background will be. Use
         //WIDtoWStringMap.txt as map for this (looks at incoming weatherID)
-        int getBackgroundId(){
-            int x = WeatherListenerService.mWeatherId;
-            if(x == 800 || (951 <= x && x <= 957)){
+        int getBackgroundId() {
+            int x = WearableCommunicationLayer.mWeatherId;
+            if (x == 800 || (951 <= x && x <= 957)) {
                 return R.drawable.clear;
-            }else if(802<= x && x <= 804){
+            } else if (802 <= x && x <= 804) {
                 return R.drawable.cloudy;
-            }else if(701 <= x && x <= 761){
+            } else if (701 <= x && x <= 761) {
                 return R.drawable.fog;
-            }else if(x == 801){
+            } else if (x == 801) {
                 return R.drawable.light_clouds;
-            }else if(300 <= x && x <= 321){
+            } else if (300 <= x && x <= 321) {
                 return R.drawable.light_rain;
-            }else if((500 <= x && x <= 504) ||
-                    (520 <= x && x <= 531)){
+            } else if ((500 <= x && x <= 504) ||
+                    (520 <= x && x <= 531)) {
                 return R.drawable.rain;
-            }else if(x == 511 || (600 <= x && x <= 622)){
+            } else if (x == 511 || (600 <= x && x <= 622)) {
                 return R.drawable.snow;
-            }else if((200 <= x && x <= 232) ||
+            } else if ((200 <= x && x <= 232) ||
                     (900 <= x && x <= 906) ||
-                    (x == 761) || (x == 771) || (x == 781)){
+                    (x == 761) || (x == 771) || (x == 781)) {
                 return R.drawable.storm;
-            }else{
+            } else {
                 return R.drawable.clear;
             }
-        }
-
-        void connectDataLayer(){
-            mGoogleApiClient = new GoogleApiClient.Builder(getApplicationContext())
-                    .addApi(Wearable.API)
-                    .addConnectionCallbacks(this)
-                    .addOnConnectionFailedListener(this)
-                    .build();
-            mGoogleApiClient.connect();
-        }
-
-        @Override
-        public void onConnected(@Nullable Bundle bundle) {
-            Log.e(TAG, "Current Weather ID: " + WeatherListenerService.mWeatherId);
-        }
-
-        @Override
-        public void onConnectionSuspended(int i) {
-            Log.e(TAG, "Wearable DataLayer connection suspended");
-        }
-        @Override
-        public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-            Log.e(TAG, "Wearable DataLayer connection failed");
         }
     }
 }

@@ -55,7 +55,7 @@ public class MainActivity extends AppCompatActivity implements
         GoogleApiClient.OnConnectionFailedListener{
 
     private final String TAG = MainActivity.class.getSimpleName();
-    private static Context mContext;
+    public static Context mContext;
     public static GoogleApiClient mGoogleApiClient;
 
     /*
@@ -170,7 +170,7 @@ public class MainActivity extends AppCompatActivity implements
         getSupportLoaderManager().initLoader(ID_FORECAST_LOADER, null, this);
         SunshineSyncUtils.initialize(this);
 
-        Log.e(TAG, "before Thread sendWeatherToWearable is run");
+        /*Log.e(TAG, "before Thread sendWeatherToWearable is run");
         Thread sendWeatherToWearable = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -178,7 +178,7 @@ public class MainActivity extends AppCompatActivity implements
             }
         });
         sendWeatherToWearable.run();
-        Log.e(TAG, "after Thread sendWeatherToWearable is run");
+        Log.e(TAG, "after Thread sendWeatherToWearable is run");*/
     }
 
     /**
