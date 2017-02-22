@@ -38,7 +38,8 @@ class WearableCommunicationLayer implements GoogleApiClient.ConnectionCallbacks,
 
     private Context mContext;
     private GoogleApiClient mGoogleApiClient;
-    private String mWeatherSyncRequestNodeId = null;
+    private String mCapableWeatherSyncRequestNodeId;
+    private String mANodeId;
 
     public static int mWeatherId;
     public static double mMax;
@@ -58,7 +59,7 @@ class WearableCommunicationLayer implements GoogleApiClient.ConnectionCallbacks,
                 .addOnConnectionFailedListener(this)
                 .build();
 
-        //Retrieve device node
+        //Setup up stuff and send message
         new Thread(new Runnable(){
             @Override
             public void run(){
@@ -66,22 +67,26 @@ class WearableCommunicationLayer implements GoogleApiClient.ConnectionCallbacks,
                 mGoogleApiClient.blockingConnect(
                         CONNECTION_TIME_OUT_MS, TimeUnit.MILLISECONDS);
 
-                //Get and set the first found node
-                NodeApi.GetConnectedNodesResult result =
-                        Wearable.NodeApi.getConnectedNodes(mGoogleApiClient).await();
-                List<Node> nodes = result.getNodes();
-                if(nodes.size() > 0 && nodes.size() < 2) {
-                    mWeatherSyncRequestNodeId = nodes.get(0).getId();
-                    Log.e(TAG, "Node connected" + "\n" + "Node is: " +
-                            nodes.get(0).getDisplayName());
-                }else{
-                    Log.e(TAG, "No nodes found");
+                //Find nodes capable of weather_sync_request
+                CapabilityApi.GetCapabilityResult capabilityResult =
+                        Wearable.CapabilityApi.getCapability(
+                                mGoogleApiClient,
+                                WEATHER_SYNC_REQUEST_CAPABILITY_NAME,
+                                CapabilityApi.FILTER_REACHABLE).await();
+                Set<Node> connectedNodes = capabilityResult.getCapability().getNodes();
+                for(Node node : connectedNodes){
+                    if(node.isNearby()){
+                        mCapableWeatherSyncRequestNodeId = node.getId();
+                        Log.e(TAG, "mCapableWeatherSyncRequestNode is : " + node.getDisplayName());
+                        break;
+                    }
+                    mCapableWeatherSyncRequestNodeId = node.getId();
                 }
 
                 //Send the message
                 Wearable.MessageApi.sendMessage(
                         mGoogleApiClient,
-                        mWeatherSyncRequestNodeId,
+                        mCapableWeatherSyncRequestNodeId,
                         WEATHER_SYNC_REQUEST_MESSAGE_PATH,
                         null).setResultCallback(new ResultCallback<MessageApi.SendMessageResult>() {
                     @Override
@@ -91,6 +96,7 @@ class WearableCommunicationLayer implements GoogleApiClient.ConnectionCallbacks,
                         }else{
                             Log.e(TAG, "weather_sync_request message successfully sent");
                         }
+                        mGoogleApiClient.disconnect();
                     }
                 });
             }
@@ -99,17 +105,17 @@ class WearableCommunicationLayer implements GoogleApiClient.ConnectionCallbacks,
 
     @Override
     public void onConnected(@Nullable Bundle bundle) {
-
+        Log.e(TAG, "GoogleApiClient connection successful");
     }
 
     @Override
     public void onConnectionSuspended(int i) {
-
+        Log.e(TAG, "GoogleApiClient connection suspended");
     }
 
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-
+        Log.e(TAG, "GoogleApiClient connection failed");
     }
 
     public class WeatherListenerService extends WearableListenerService {

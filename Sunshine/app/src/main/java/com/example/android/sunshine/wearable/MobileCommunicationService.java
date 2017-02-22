@@ -21,12 +21,14 @@ import com.example.android.sunshine.data.WeatherContract;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.common.api.Status;
 import com.google.android.gms.wearable.DataApi;
 import com.google.android.gms.wearable.MessageApi;
 import com.google.android.gms.wearable.MessageEvent;
 import com.google.android.gms.wearable.PutDataMapRequest;
 import com.google.android.gms.wearable.PutDataRequest;
 import com.google.android.gms.wearable.Wearable;
+import com.google.android.gms.wearable.WearableListenerService;
 
 public class MobileCommunicationService extends Service implements
         GoogleApiClient.ConnectionCallbacks,
@@ -67,7 +69,21 @@ public class MobileCommunicationService extends Service implements
     @Override
     public void onConnected(@Nullable Bundle bundle) {
         Log.e(TAG, "Connected to GoogleApiClient mobile side");
+
+        //Flicker Data Items so Wear sees Data Item change
         getWeatherCV();
+
+        //Add our Message Listener
+        Wearable.MessageApi.addListener(mGoogleApiClient, this).setResultCallback(new ResultCallback<Status>() {
+            @Override
+            public void onResult(@NonNull Status status) {
+                if(status.isSuccess()){
+                    Log.e(TAG, "Message Listener successfully added");
+                }else{
+                    Log.e(TAG, "Message Listener unsuccessfully added");
+                }
+            }
+        });
     }
 
     @Override
@@ -84,13 +100,7 @@ public class MobileCommunicationService extends Service implements
     public void onMessageReceived(MessageEvent messageEvent) {
         Log.e(TAG, "message received");
         if(messageEvent.getPath().equals(WEATHER_SYNC_REQUEST_MESSAGE_PATH)){
-            Log.e(TAG, "weather_sync_request message received");
-            mGoogleApiClient = new GoogleApiClient.Builder(mContext)
-                    .addApi(Wearable.API)
-                    .addConnectionCallbacks(this)
-                    .addOnConnectionFailedListener(this)
-                    .build();
-            mGoogleApiClient.connect();
+            getWeatherCV();
         }else{
             Log.e(TAG, "Unknown message event received");
         }
@@ -98,7 +108,7 @@ public class MobileCommunicationService extends Service implements
 
     //Fetches our Weather Content values from the Data Provider and calls method
     //to send them to wearable
-    void getWeatherCV() {
+   void getWeatherCV() {
         /* URI for all rows of weather data in our weather table */
         Uri forecastQueryUri = WeatherContract.WeatherEntry.CONTENT_URI;
                 /* Sort order: Ascending by date */
@@ -180,6 +190,5 @@ public class MobileCommunicationService extends Service implements
                         }
                     }
                 });
-
     }
 }
