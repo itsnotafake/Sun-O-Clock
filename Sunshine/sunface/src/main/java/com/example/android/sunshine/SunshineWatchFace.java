@@ -151,16 +151,7 @@ public class SunshineWatchFace extends CanvasWatchFaceService{
             mCalendar = Calendar.getInstance();
 
             //Start GoogleApiClient and begin weather data synchronization
-            Thread setupCommunicationLayer = new Thread(new Runnable(){
-                @Override
-                public void run(){
-                    //WearableCommunicationLayer wearableCommunicationLayer =
-                            new WearableCommunicationLayer(getApplicationContext());
-                    //wearableCommunicationLayer.setupWeatherSyncRequest();
-                    //wearableCommunicationLayer.requestSyncWeatherRequest();
-                }
-            });
-            setupCommunicationLayer.run();
+            new WearableCommunicationLayer(getApplicationContext());
         }
 
         @Override

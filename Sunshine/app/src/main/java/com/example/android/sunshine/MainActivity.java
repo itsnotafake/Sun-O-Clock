@@ -40,6 +40,7 @@ import android.widget.ProgressBar;
 import com.example.android.sunshine.data.SunshinePreferences;
 import com.example.android.sunshine.data.WeatherContract;
 import com.example.android.sunshine.sync.SunshineSyncUtils;
+import com.example.android.sunshine.wearable.MobileCommunicationService;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.ResultCallback;
@@ -102,6 +103,10 @@ public class MainActivity extends AppCompatActivity implements
         mContext = this;
         setContentView(R.layout.activity_forecast);
         getSupportActionBar().setElevation(0f);
+
+        //Start MobileCommunicationLayer Service
+        Intent intent = new Intent(this, MobileCommunicationService.class);
+        startService(intent);
 
         /*
          * Using findViewById, we get a reference to our RecyclerView from xml. This allows us to
