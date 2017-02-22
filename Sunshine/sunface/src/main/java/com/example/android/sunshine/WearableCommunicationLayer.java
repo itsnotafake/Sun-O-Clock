@@ -9,8 +9,10 @@ import android.util.Log;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.common.api.Status;
 import com.google.android.gms.wearable.CapabilityApi;
 import com.google.android.gms.wearable.CapabilityInfo;
+import com.google.android.gms.wearable.DataApi;
 import com.google.android.gms.wearable.DataEvent;
 import com.google.android.gms.wearable.DataEventBuffer;
 import com.google.android.gms.wearable.DataMap;
@@ -33,13 +35,13 @@ import java.util.concurrent.TimeUnit;
  */
 
 class WearableCommunicationLayer implements GoogleApiClient.ConnectionCallbacks,
-        GoogleApiClient.OnConnectionFailedListener{
+        GoogleApiClient.OnConnectionFailedListener,
+        DataApi.DataListener{
     private static final String TAG = WearableCommunicationLayer.class.getSimpleName();
 
     private Context mContext;
     private GoogleApiClient mGoogleApiClient;
     private String mCapableWeatherSyncRequestNodeId;
-    private String mANodeId;
 
     public static int mWeatherId;
     public static double mMax;
@@ -47,6 +49,7 @@ class WearableCommunicationLayer implements GoogleApiClient.ConnectionCallbacks,
 
     private static final String WEATHER_SYNC_REQUEST_CAPABILITY_NAME = "weather_sync_request";
     private static final String WEATHER_SYNC_REQUEST_MESSAGE_PATH = "/weather_sync_request";
+    private static final String WEATHER_DATA_ITEM_PATH = "/weatherDataItem";
     private static final int CONNECTION_TIME_OUT_MS = 7500;
 
     public WearableCommunicationLayer(Context context){
@@ -96,7 +99,6 @@ class WearableCommunicationLayer implements GoogleApiClient.ConnectionCallbacks,
                         }else{
                             Log.e(TAG, "weather_sync_request message successfully sent");
                         }
-                        mGoogleApiClient.disconnect();
                     }
                 });
             }
@@ -106,6 +108,16 @@ class WearableCommunicationLayer implements GoogleApiClient.ConnectionCallbacks,
     @Override
     public void onConnected(@Nullable Bundle bundle) {
         Log.e(TAG, "GoogleApiClient connection successful");
+        Wearable.DataApi.addListener(mGoogleApiClient, this).setResultCallback(new ResultCallback<Status>() {
+            @Override
+            public void onResult(@NonNull Status status) {
+                if(status.isSuccess()){
+                    Log.e(TAG, "Wearable onDataChanged listener successfully added");
+                }else{
+                    Log.e(TAG, "Wearable onDataChanged listener unsuccessfully added");
+                }
+            }
+        });
     }
 
     @Override
@@ -118,28 +130,23 @@ class WearableCommunicationLayer implements GoogleApiClient.ConnectionCallbacks,
         Log.e(TAG, "GoogleApiClient connection failed");
     }
 
-    public class WeatherListenerService extends WearableListenerService {
-        private static final String TAG = "WeatherListenerService";
-        private static final String DATA_EVENT_PATH = "/weatherCV";
+    @Override
+    public void onDataChanged(DataEventBuffer dataEvents) {
+        Log.e(TAG, "dataEvent occured");
 
-        @Override
-        public void onDataChanged(DataEventBuffer dataEvents){
-            Log.e(TAG, "dataEvent occured");
+        for(DataEvent dataEvent : dataEvents){
+            if(dataEvent.getType() == DataEvent.TYPE_CHANGED){
+                DataMap dataMap = DataMapItem.fromDataItem(dataEvent.getDataItem()).getDataMap();
+                String path = dataEvent.getDataItem().getUri().getPath();
+                if(path.equals(WEATHER_DATA_ITEM_PATH)){
+                    WearableCommunicationLayer.mWeatherId = dataMap.getInt("weather_id");
+                    WearableCommunicationLayer.mMax = dataMap.getDouble("max");
+                    WearableCommunicationLayer.mMin = dataMap.getDouble("min");
+                    Log.e(TAG, "Weather data successfully received");
 
-            for(DataEvent dataEvent : dataEvents){
-                if(dataEvent.getType() == DataEvent.TYPE_CHANGED){
-                    DataMap dataMap = DataMapItem.fromDataItem(dataEvent.getDataItem()).getDataMap();
-                    String path = dataEvent.getDataItem().getUri().getPath();
-                    if(path.equals(DATA_EVENT_PATH)){
-                        WearableCommunicationLayer.mWeatherId = dataMap.getInt("weather_id");
-                        WearableCommunicationLayer.mMax = dataMap.getDouble("max");
-                        WearableCommunicationLayer.mMin = dataMap.getDouble("min");
-                        Log.e(TAG, "Weather data successfully received");
-
-                        Log.e(TAG, "New Weather ID: " +WearableCommunicationLayer.mWeatherId + "\n" +
-                                "New max temp: " + WearableCommunicationLayer.mMax + "\n" +
-                                "New min temp: " + WearableCommunicationLayer.mMin);
-                    }
+                    Log.e(TAG, "New Weather ID: " +WearableCommunicationLayer.mWeatherId + "\n" +
+                            "New max temp: " + WearableCommunicationLayer.mMax + "\n" +
+                            "New min temp: " + WearableCommunicationLayer.mMin);
                 }
             }
         }

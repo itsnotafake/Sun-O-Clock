@@ -36,6 +36,7 @@ public class MobileCommunicationService extends Service implements
         MessageApi.MessageListener{
     private static final String TAG = MobileCommunicationService.class.getSimpleName();
     private static final String WEATHER_SYNC_REQUEST_MESSAGE_PATH = "/weather_sync_request";
+    private static final String WEATHER_DATA_ITEM_PATH = "/weatherDataItem";
 
     private Context mContext;
     private GoogleApiClient mGoogleApiClient;
@@ -137,10 +138,10 @@ public class MobileCommunicationService extends Service implements
     private void updateWeatherDataItem(){
         //First set(and send) Data Items to bogus numbers
         // to make sure onDateChanged is called
-        PutDataMapRequest putDataMapRequest = PutDataMapRequest.create("/weatherCV");
+        PutDataMapRequest putDataMapRequest = PutDataMapRequest.create(WEATHER_DATA_ITEM_PATH);
         putDataMapRequest.getDataMap().putInt(
                 WeatherContract.WeatherEntry.COLUMN_WEATHER_ID,
-                0
+                1
         );
         putDataMapRequest.getDataMap().putDouble(
                 WeatherContract.WeatherEntry.COLUMN_MAX_TEMP,

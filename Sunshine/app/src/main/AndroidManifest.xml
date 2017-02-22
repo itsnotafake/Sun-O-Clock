@@ -83,5 +83,4 @@
             android:launchMode="singleTop">
         </service>
     </application>
-
 </manifest>
