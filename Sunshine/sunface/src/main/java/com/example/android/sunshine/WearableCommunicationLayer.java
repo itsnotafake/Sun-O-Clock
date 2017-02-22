@@ -73,7 +73,7 @@ class WearableCommunicationLayer implements GoogleApiClient.ConnectionCallbacks,
                 if(nodes.size() > 0 && nodes.size() < 2) {
                     mWeatherSyncRequestNodeId = nodes.get(0).getId();
                     Log.e(TAG, "Node connected" + "\n" + "Node is: " +
-                            mWeatherSyncRequestNodeId);
+                            nodes.get(0).getDisplayName());
                 }else{
                     Log.e(TAG, "No nodes found");
                 }
