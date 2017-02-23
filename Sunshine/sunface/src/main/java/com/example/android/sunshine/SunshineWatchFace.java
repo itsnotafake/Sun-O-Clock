@@ -33,12 +33,9 @@ import android.os.Handler;
 import android.os.Message;
 import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
-import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.WindowInsets;
 import android.widget.Toast;
-
-import com.google.android.gms.common.api.GoogleApiClient;
 
 import java.lang.ref.WeakReference;
 import java.util.Calendar;
@@ -99,13 +96,14 @@ public class SunshineWatchFace extends CanvasWatchFaceService{
         final Handler mUpdateTimeHandler = new EngineHandler(this);
         boolean mRegisteredTimeZoneReceiver = false;
 
-        Paint mTextPaint;
+        Paint mTextPaintPrimary;
         Paint mBackgroundPaint;
         Bitmap mBackgroundBitmap;
 
         private boolean mAmbient;
         private boolean mLowBitAmbient;
         private boolean mBurnInProtection;
+        private boolean mIsRound;
 
         Calendar mCalendar;
         final BroadcastReceiver mTimeZoneReceiver = new BroadcastReceiver() {
@@ -146,8 +144,8 @@ public class SunshineWatchFace extends CanvasWatchFaceService{
             mBackgroundPaint.setColor(resources.getColor(R.color.background));
             mBackgroundBitmap = BitmapFactory.decodeResource(getResources(), getBackgroundId());
 
-            mTextPaint = new Paint();
-            mTextPaint = createTextPaint(resources.getColor(R.color.digital_text));
+            mTextPaintPrimary = new Paint();
+            mTextPaintPrimary = createTextPaint(resources.getColor(R.color.digital_text));
 
             mCalendar = Calendar.getInstance();
 
@@ -180,7 +178,7 @@ public class SunshineWatchFace extends CanvasWatchFaceService{
             if (mAmbient != inAmbientMode) {
                 mAmbient = inAmbientMode;
                 if (mLowBitAmbient || mBurnInProtection) {
-                    mTextPaint.setAntiAlias(!inAmbientMode);
+                    mTextPaintPrimary.setAntiAlias(!inAmbientMode);
                 }
                 invalidate();
             }
@@ -247,14 +245,14 @@ public class SunshineWatchFace extends CanvasWatchFaceService{
                     mCalendar.get(Calendar.MINUTE))
                     : String.format("%d:%02d:%02d", mCalendar.get(Calendar.HOUR),
                     mCalendar.get(Calendar.MINUTE), mCalendar.get(Calendar.SECOND));
-            canvas.drawText(text, mXOffset, mYOffset, mTextPaint);
+            canvas.drawText(text, mXOffset, mYOffset, mTextPaintPrimary);
 
             if (!mAmbient) {
                 canvas.drawText(String.valueOf(WearableCommunicationLayer.mMin)
                                 + "- " + String.valueOf(WearableCommunicationLayer.mMax),
                         mXOffset,
                         mYOffset + 50,
-                        mTextPaint
+                        mTextPaintPrimary
                 );
             }
         }
@@ -301,13 +299,13 @@ public class SunshineWatchFace extends CanvasWatchFaceService{
 
             // Load resources that have alternate values for round watches.
             Resources resources = SunshineWatchFace.this.getResources();
-            boolean isRound = insets.isRound();
-            mXOffset = resources.getDimension(isRound
+            mIsRound = insets.isRound();
+            mXOffset = resources.getDimension(mIsRound
                     ? R.dimen.digital_x_offset_round : R.dimen.digital_x_offset);
-            float textSize = resources.getDimension(isRound
+            float textSize = resources.getDimension(mIsRound
                     ? R.dimen.digital_text_size_round : R.dimen.digital_text_size);
 
-            mTextPaint.setTextSize(textSize);
+            mTextPaintPrimary.setTextSize(textSize);
         }
 
         /**
@@ -371,29 +369,50 @@ public class SunshineWatchFace extends CanvasWatchFaceService{
             if(WearableCommunicationLayer.mWeatherId != null) {
                 int x = Integer.parseInt(WearableCommunicationLayer.mWeatherId);
                 if (x == 800 || (951 <= x && x <= 957)) {
+                    setTextPaint(1);
                     return R.drawable.clear;
                 } else if (802 <= x && x <= 804) {
+                    setTextPaint(0);
                     return R.drawable.cloudy;
                 } else if (701 <= x && x <= 761) {
+                    setTextPaint(1);
                     return R.drawable.fog;
                 } else if (x == 801) {
+                    setTextPaint(1);
                     return R.drawable.light_clouds;
                 } else if (300 <= x && x <= 321) {
+                    setTextPaint(0);
                     return R.drawable.light_rain;
                 } else if ((500 <= x && x <= 504) ||
                         (520 <= x && x <= 531)) {
+                    setTextPaint(0);
                     return R.drawable.rain;
                 } else if (x == 511 || (600 <= x && x <= 622)) {
+                    setTextPaint(0);
                     return R.drawable.snow;
                 } else if ((200 <= x && x <= 232) ||
                         (900 <= x && x <= 906) ||
                         (x == 761) || (x == 771) || (x == 781)) {
+                    setTextPaint(0);
                     return R.drawable.storm;
                 } else {
+                    setTextPaint(1);
                     return R.drawable.clear;
                 }
             }
             return R.drawable.clear;
+        }
+
+        //Sets to white if 0, sets to black if anything else
+        private void setTextPaint(int i){
+            if(i == 0){
+                mTextPaintPrimary = createTextPaint(getResources().getColor(R.color.digital_text));
+            }else{
+                mTextPaintPrimary = createTextPaint(getResources().getColor(R.color.digital_text_secondary));
+            }
+            float textSize = getResources().getDimension(mIsRound
+                    ? R.dimen.digital_text_size_round : R.dimen.digital_text_size);
+            mTextPaintPrimary.setTextSize(textSize);
         }
     }
 }

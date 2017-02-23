@@ -166,7 +166,8 @@ public class MobileCommunicationService extends Service implements
                 }
 
                 //Set weather values and put into byte form
-                String weatherId = "" + mWeatherId;
+                //String weatherId = "" + mWeatherId;
+                String weatherId = "802";
                 String max = SunshineWeatherUtils.formatTemperature(MainActivity.mContext, mMax);
                 String min = SunshineWeatherUtils.formatTemperature(MainActivity.mContext, mMin);
                 byte[] bytes = (weatherId + "," + max + "," + min).getBytes(Charset.forName("UTF-8"));
