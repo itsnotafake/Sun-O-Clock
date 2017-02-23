@@ -57,6 +57,7 @@ public class SunshineWatchFace extends CanvasWatchFaceService{
     private static final Typeface NORMAL_TYPEFACE =
             Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL);
 
+
     /**
      * Update rate in milliseconds for interactive mode. We update once a second since seconds are
      * displayed in interactive mode.
@@ -93,14 +94,14 @@ public class SunshineWatchFace extends CanvasWatchFaceService{
         }
     }
 
-    private class Engine extends CanvasWatchFaceService.Engine {
+    class Engine extends CanvasWatchFaceService.Engine{
 
         final Handler mUpdateTimeHandler = new EngineHandler(this);
         boolean mRegisteredTimeZoneReceiver = false;
 
         Paint mTextPaint;
         Paint mBackgroundPaint;
-        private Bitmap mBackgroundBitmap;
+        Bitmap mBackgroundBitmap;
 
         private boolean mAmbient;
         private boolean mLowBitAmbient;
@@ -151,7 +152,7 @@ public class SunshineWatchFace extends CanvasWatchFaceService{
             mCalendar = Calendar.getInstance();
 
             //Start GoogleApiClient and begin weather data synchronization
-            new WearableCommunicationLayer(getApplicationContext());
+            new WearableCommunicationLayer(getApplicationContext(), this);
         }
 
         @Override
@@ -209,6 +210,7 @@ public class SunshineWatchFace extends CanvasWatchFaceService{
 
             mScale = ((float) width) / (float) mBackgroundBitmap.getWidth();
 
+            mBackgroundBitmap = BitmapFactory.decodeResource(getResources(), getBackgroundId());
             mBackgroundBitmap = Bitmap.createScaledBitmap(mBackgroundBitmap,
                     (int) (mBackgroundBitmap.getWidth() * mScale),
                     (int) (mBackgroundBitmap.getHeight() * mScale), true);
@@ -366,29 +368,32 @@ public class SunshineWatchFace extends CanvasWatchFaceService{
         //Method used to determine which our background will be. Use
         //WIDtoWStringMap.txt as map for this (looks at incoming weatherID)
         int getBackgroundId() {
-            int x = WearableCommunicationLayer.mWeatherId;
-            if (x == 800 || (951 <= x && x <= 957)) {
-                return R.drawable.clear;
-            } else if (802 <= x && x <= 804) {
-                return R.drawable.cloudy;
-            } else if (701 <= x && x <= 761) {
-                return R.drawable.fog;
-            } else if (x == 801) {
-                return R.drawable.light_clouds;
-            } else if (300 <= x && x <= 321) {
-                return R.drawable.light_rain;
-            } else if ((500 <= x && x <= 504) ||
-                    (520 <= x && x <= 531)) {
-                return R.drawable.rain;
-            } else if (x == 511 || (600 <= x && x <= 622)) {
-                return R.drawable.snow;
-            } else if ((200 <= x && x <= 232) ||
-                    (900 <= x && x <= 906) ||
-                    (x == 761) || (x == 771) || (x == 781)) {
-                return R.drawable.storm;
-            } else {
-                return R.drawable.clear;
+            if(WearableCommunicationLayer.mWeatherId != null) {
+                int x = Integer.parseInt(WearableCommunicationLayer.mWeatherId);
+                if (x == 800 || (951 <= x && x <= 957)) {
+                    return R.drawable.clear;
+                } else if (802 <= x && x <= 804) {
+                    return R.drawable.cloudy;
+                } else if (701 <= x && x <= 761) {
+                    return R.drawable.fog;
+                } else if (x == 801) {
+                    return R.drawable.light_clouds;
+                } else if (300 <= x && x <= 321) {
+                    return R.drawable.light_rain;
+                } else if ((500 <= x && x <= 504) ||
+                        (520 <= x && x <= 531)) {
+                    return R.drawable.rain;
+                } else if (x == 511 || (600 <= x && x <= 622)) {
+                    return R.drawable.snow;
+                } else if ((200 <= x && x <= 232) ||
+                        (900 <= x && x <= 906) ||
+                        (x == 761) || (x == 771) || (x == 781)) {
+                    return R.drawable.storm;
+                } else {
+                    return R.drawable.clear;
+                }
             }
+            return R.drawable.clear;
         }
     }
 }

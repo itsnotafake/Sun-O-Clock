@@ -18,17 +18,25 @@ import android.util.Log;
 
 import com.example.android.sunshine.MainActivity;
 import com.example.android.sunshine.data.WeatherContract;
+import com.example.android.sunshine.utilities.SunshineWeatherUtils;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Status;
+import com.google.android.gms.wearable.CapabilityApi;
 import com.google.android.gms.wearable.DataApi;
 import com.google.android.gms.wearable.MessageApi;
 import com.google.android.gms.wearable.MessageEvent;
+import com.google.android.gms.wearable.Node;
 import com.google.android.gms.wearable.PutDataMapRequest;
 import com.google.android.gms.wearable.PutDataRequest;
 import com.google.android.gms.wearable.Wearable;
 import com.google.android.gms.wearable.WearableListenerService;
+
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public class MobileCommunicationService extends Service implements
         GoogleApiClient.ConnectionCallbacks,
@@ -36,14 +44,16 @@ public class MobileCommunicationService extends Service implements
         MessageApi.MessageListener{
     private static final String TAG = MobileCommunicationService.class.getSimpleName();
     private static final String WEATHER_SYNC_REQUEST_MESSAGE_PATH = "/weather_sync_request";
-    private static final String WEATHER_DATA_ITEM_PATH = "/weatherDataItem";
+    private static final String WEATHER_SEND_REQUEST_CAPABILITY_NAME = "weather_send_request";
+    private static final String WEATHER_SEND_REQUEST_MESSAGE_PATH = "/weather_send_request";
 
     private Context mContext;
     private GoogleApiClient mGoogleApiClient;
+    private String mCapableWeatherSendRequestNodeId;
 
     private int mWeatherId;
-    private double mMax;
-    private double mMin;
+    private Double mMax;
+    private Double mMin;
 
     public MobileCommunicationService() {
     }
@@ -126,70 +136,57 @@ public class MobileCommunicationService extends Service implements
             mWeatherId = cursor.getInt(MainActivity.INDEX_WEATHER_CONDITION_ID);
             mMax = cursor.getDouble(MainActivity.INDEX_WEATHER_MAX_TEMP);;
             mMin = cursor.getDouble(MainActivity.INDEX_WEATHER_MIN_TEMP);
-            updateWeatherDataItem();
+            sendWeatherMessage();
         }else{
             Log.e(TAG, "Cursor is null");
         }
         cursor.close();
     }
 
-    //Sends weather data to wearable and flickers our data item to make sure
-    //onDataChanged() is called
-    private void updateWeatherDataItem(){
-        //First set(and send) Data Items to bogus numbers
-        // to make sure onDateChanged is called
-        PutDataMapRequest putDataMapRequest = PutDataMapRequest.create(WEATHER_DATA_ITEM_PATH);
-        putDataMapRequest.getDataMap().putInt(
-                WeatherContract.WeatherEntry.COLUMN_WEATHER_ID,
-                1
-        );
-        putDataMapRequest.getDataMap().putDouble(
-                WeatherContract.WeatherEntry.COLUMN_MAX_TEMP,
-                0
-        );
-        putDataMapRequest.getDataMap().putDouble(
-                WeatherContract.WeatherEntry.COLUMN_MIN_TEMP,
-                0
-        );
-        PutDataRequest request = putDataMapRequest.asPutDataRequest();
-        request.setUrgent();
-        Wearable.DataApi.putDataItem(mGoogleApiClient, request)
-                .setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
-                    @Override
-                    public void onResult(DataApi.DataItemResult dataItemResult){
-                        if(!dataItemResult.getStatus().isSuccess()){
-                            Log.e(TAG, "Failed to send BAD weather Content Values");
-                        }else{
-                            Log.e(TAG, "Successfully sent BAD weather Content values");
-                        }
+    //Send the weather Items in a message
+    public void sendWeatherMessage(){
+        //check node capabilities, get node, send message
+        new Thread(new Runnable(){
+            @Override
+            public void run(){
+                //Find nodes capable of weather_sync_request
+                CapabilityApi.GetCapabilityResult capabilityResult =
+                        Wearable.CapabilityApi.getCapability(
+                                mGoogleApiClient,
+                                WEATHER_SEND_REQUEST_CAPABILITY_NAME,
+                                CapabilityApi.FILTER_REACHABLE).await();
+                Set<Node> connectedNodes = capabilityResult.getCapability().getNodes();
+                for(Node node : connectedNodes){
+                    if(node.isNearby()){
+                        mCapableWeatherSendRequestNodeId = node.getId();
+                        Log.e(TAG, "mCapableWeatherSendRequestNode is : " + node.getDisplayName());
+                        break;
                     }
-                });
+                    mCapableWeatherSendRequestNodeId = node.getId();
+                }
 
-        //Now set them to their real numbers
-        putDataMapRequest.getDataMap().putInt(
-                WeatherContract.WeatherEntry.COLUMN_WEATHER_ID,
-                mWeatherId
-        );
-        putDataMapRequest.getDataMap().putDouble(
-                WeatherContract.WeatherEntry.COLUMN_MAX_TEMP,
-                mMax
-        );
-        putDataMapRequest.getDataMap().putDouble(
-                WeatherContract.WeatherEntry.COLUMN_MIN_TEMP,
-                mMin
-        );
-        request = putDataMapRequest.asPutDataRequest();
-        request.setUrgent();
-        Wearable.DataApi.putDataItem(mGoogleApiClient, request)
-                .setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
+                //Set weather values and put into byte form
+                String weatherId = "" + mWeatherId;
+                String max = SunshineWeatherUtils.formatTemperature(mContext, mMax);
+                String min = SunshineWeatherUtils.formatTemperature(mContext, mMin);
+                byte[] bytes = (weatherId + "," + max + "," + min).getBytes(Charset.forName("UTF-8"));
+
+                //Send the message
+                Wearable.MessageApi.sendMessage(
+                        mGoogleApiClient,
+                        mCapableWeatherSendRequestNodeId,
+                        WEATHER_SEND_REQUEST_MESSAGE_PATH,
+                        bytes).setResultCallback(new ResultCallback<MessageApi.SendMessageResult>() {
                     @Override
-                    public void onResult(DataApi.DataItemResult dataItemResult){
-                        if(!dataItemResult.getStatus().isSuccess()){
-                            Log.e(TAG, "Failed to send GOOD weather Content Values");
+                    public void onResult(@NonNull MessageApi.SendMessageResult sendMessageResult) {
+                        if(!sendMessageResult.getStatus().isSuccess()){
+                            Log.e(TAG, "weather_send_request message unsuccessfully sent");
                         }else{
-                            Log.e(TAG, "Successfully sent GOOD weather Content values");
+                            Log.e(TAG, "weather_send_request message successfully sent");
                         }
                     }
                 });
+            }
+        }).start();
     }
 }
