@@ -251,7 +251,7 @@ public class SunshineWatchFace extends CanvasWatchFaceService{
 
             if (!mAmbient) {
                 canvas.drawText(String.valueOf(WearableCommunicationLayer.mMin)
-                                + " - " + String.valueOf(WearableCommunicationLayer.mMax),
+                                + "- " + String.valueOf(WearableCommunicationLayer.mMax),
                         mXOffset,
                         mYOffset + 50,
                         mTextPaint

@@ -48,12 +48,12 @@ public class MobileCommunicationService extends Service implements
     private static final String WEATHER_SEND_REQUEST_MESSAGE_PATH = "/weather_send_request";
 
     private Context mContext;
-    private GoogleApiClient mGoogleApiClient;
-    private String mCapableWeatherSendRequestNodeId;
+    private static GoogleApiClient mGoogleApiClient;
+    private static String mCapableWeatherSendRequestNodeId;
 
-    private int mWeatherId;
-    private Double mMax;
-    private Double mMin;
+    private static int mWeatherId;
+    private static Double mMax;
+    private static Double mMin;
 
     public MobileCommunicationService() {
     }
@@ -81,7 +81,7 @@ public class MobileCommunicationService extends Service implements
     public void onConnected(@Nullable Bundle bundle) {
         Log.e(TAG, "Connected to GoogleApiClient mobile side");
 
-        //Flicker Data Items so Wear sees Data Item change
+        //Get weather Data from Content Provider and send as message
         getWeatherCV();
 
         //Add our Message Listener
@@ -119,12 +119,12 @@ public class MobileCommunicationService extends Service implements
 
     //Fetches our Weather Content values from the Data Provider and calls method
     //to send them to wearable
-   void getWeatherCV() {
+   public static void getWeatherCV() {
         /* URI for all rows of weather data in our weather table */
         Uri forecastQueryUri = WeatherContract.WeatherEntry.CONTENT_URI;
                 /* Sort order: Ascending by date */
         String sortOrder = WeatherContract.WeatherEntry.COLUMN_DATE + " ASC";
-        ContentResolver contentResolver = mContext.getContentResolver();
+        ContentResolver contentResolver = MainActivity.mContext.getContentResolver();
         Cursor cursor = contentResolver.query(
                 forecastQueryUri,
                 MainActivity.MAIN_FORECAST_PROJECTION,
@@ -144,7 +144,7 @@ public class MobileCommunicationService extends Service implements
     }
 
     //Send the weather Items in a message
-    public void sendWeatherMessage(){
+    static void sendWeatherMessage(){
         //check node capabilities, get node, send message
         new Thread(new Runnable(){
             @Override
@@ -167,8 +167,8 @@ public class MobileCommunicationService extends Service implements
 
                 //Set weather values and put into byte form
                 String weatherId = "" + mWeatherId;
-                String max = SunshineWeatherUtils.formatTemperature(mContext, mMax);
-                String min = SunshineWeatherUtils.formatTemperature(mContext, mMin);
+                String max = SunshineWeatherUtils.formatTemperature(MainActivity.mContext, mMax);
+                String min = SunshineWeatherUtils.formatTemperature(MainActivity.mContext, mMin);
                 byte[] bytes = (weatherId + "," + max + "," + min).getBytes(Charset.forName("UTF-8"));
 
                 //Send the message

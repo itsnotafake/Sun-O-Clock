@@ -32,6 +32,7 @@ import com.example.android.sunshine.data.WeatherContract;
 import com.example.android.sunshine.utilities.NetworkUtils;
 import com.example.android.sunshine.utilities.NotificationUtils;
 import com.example.android.sunshine.utilities.OpenWeatherJsonUtils;
+import com.example.android.sunshine.wearable.MobileCommunicationService;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.ResultCallback;
@@ -119,6 +120,7 @@ public class SunshineSyncTask{
                     NotificationUtils.notifyUserOfNewWeather(context);
                 }
             /* If the code reaches this point, we have successfully performed our sync */
+                MobileCommunicationService.getWeatherCV();
 
             }
 
